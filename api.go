@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 )
 
 type (
@@ -25,6 +26,8 @@ type (
 )
 
 const (
+	envRuntimeDomain = "AWS_LAMBDA_RUNTIME_API"
+
 	headerContentType  = "Content-Type"
 	defaultContentType = "application/json"
 
@@ -32,6 +35,21 @@ const (
 	defaultInitErrorHeader   = "Runtime.InitError"
 	defaultInvokeErrorHeader = "Runtime.InvokeError"
 )
+
+var (
+	_ = api(&defaultAPI{})
+)
+
+func newDefaultAPI() defaultAPI {
+	domain := os.Getenv(envRuntimeDomain)
+
+	return defaultAPI{
+		domain:              domain,
+		invocationUrlPrefix: "http://" + domain + "/2018-06-01/runtime/invocation/",
+		nextUrl:             "http://" + domain + "/2018-06-01/runtime/invocation/next",
+		initErrorUrl:        "http://" + domain + "/2018-06-01/runtime/init/error",
+	}
+}
 
 func (api defaultAPI) getRuntimeInvocationNext() (*http.Response, error) {
 	resp, err := http.Get(api.nextUrl)
@@ -72,19 +90,19 @@ func (api defaultAPI) postRuntimeInitError(err error) (*http.Response, error) {
 
 	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
-		return resp, fmt.Errorf("%w; Error submitting defaultAPI.postRuntimeInitError request", err)
+		return resp, fmt.Errorf("%w; error submitting defaultAPI.postRuntimeInitError request", err)
 	} else {
 		msg, _ := io.ReadAll(resp.Body)
 
 		switch resp.StatusCode {
 		case http.StatusAccepted:
-			return resp, fmt.Errorf("Accepted status code (202) defaultAPI.postRuntimeInitError\n%s", string(msg))
+			return resp, fmt.Errorf("accepted status code (202) defaultAPI.postRuntimeInitError\n%s", string(msg))
 		case http.StatusForbidden:
-			return resp, fmt.Errorf("Forbidden status code (403) defaultAPI.postRuntimeInitError\n%s", string(msg))
+			return resp, fmt.Errorf("forbidden status code (403) defaultAPI.postRuntimeInitError\n%s", string(msg))
 		case http.StatusInternalServerError:
-			return resp, fmt.Errorf("Container Error status code (500) defaultAPI.postRuntimeInitError\n%s", string(msg))
+			return resp, fmt.Errorf("container Error status code (500) defaultAPI.postRuntimeInitError\n%s", string(msg))
 		default:
-			return resp, fmt.Errorf("Invalid status code (%d) defaultAPI.postRuntimeInitError\n%s", resp.StatusCode, string(msg))
+			return resp, fmt.Errorf("invalid status code (%d) defaultAPI.postRuntimeInitError\n%s", resp.StatusCode, string(msg))
 		}
 	}
 }
@@ -119,21 +137,21 @@ func (api defaultAPI) postRuntimeInvocationError(requestId string, err error) (*
 
 	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
-		return resp, fmt.Errorf("%w; Error submitting defaultAPI.postRuntimeInvocationError request", err)
+		return resp, fmt.Errorf("%w; error submitting defaultAPI.postRuntimeInvocationError request", err)
 	} else {
 		msg, _ := io.ReadAll(resp.Body)
 
 		switch resp.StatusCode {
 		case http.StatusAccepted:
-			return resp, fmt.Errorf("Accepted status code (202) defaultAPI.postRuntimeInvocationError for request: %s\n%s", requestId, string(msg))
+			return resp, fmt.Errorf("accepted status code (202) defaultAPI.postRuntimeInvocationError for request: %s\n%s", requestId, string(msg))
 		case http.StatusBadRequest:
-			return resp, fmt.Errorf("Bad Request status code (400) defaultAPI.postRuntimeInvocationError for request: %s\n%s", requestId, string(msg))
+			return resp, fmt.Errorf("bad Request status code (400) defaultAPI.postRuntimeInvocationError for request: %s\n%s", requestId, string(msg))
 		case http.StatusForbidden:
-			return resp, fmt.Errorf("Forbidden status code (403) defaultAPI.postRuntimeInvocationError for request: %s\n%s", requestId, string(msg))
+			return resp, fmt.Errorf("forbidden status code (403) defaultAPI.postRuntimeInvocationError for request: %s\n%s", requestId, string(msg))
 		case http.StatusInternalServerError:
-			return resp, fmt.Errorf("Container Error status code (500) defaultAPI.postRuntimeInvocationError for request: %s\n%s", requestId, string(msg))
+			return resp, fmt.Errorf("container Error status code (500) defaultAPI.postRuntimeInvocationError for request: %s\n%s", requestId, string(msg))
 		default:
-			return resp, fmt.Errorf("Invalid status code (%d) defaultAPI.postRuntimeInvocationError for request: %s\n%s", resp.StatusCode, requestId, string(msg))
+			return resp, fmt.Errorf("invalid status code (%d) defaultAPI.postRuntimeInvocationError for request: %s\n%s", resp.StatusCode, requestId, string(msg))
 		}
 	}
 }

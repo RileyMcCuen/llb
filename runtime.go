@@ -15,12 +15,12 @@ type (
 		api     api
 		handler Handler
 		meta    RequestMeta
+		fatal   func(error)
 	}
 )
 
 const (
-	envRuntimeDomain = "AWS_LAMBDA_RUNTIME_API"
-	envTraceId       = "_X_AMZN_TRACE_ID"
+	envTraceId = "_X_AMZN_TRACE_ID"
 
 	headerRequestId       = "Lambda-Runtime-Aws-Request-Id"
 	headerDeadline        = "Lambda-Runtime-Deadline-Ms"
@@ -31,30 +31,27 @@ const (
 )
 
 func Start(handler Handler) {
-	rt := newLambdaRuntime(handler)
+	newruntime(handler, newDefaultAPI()).start()
+}
 
+func newruntime(handler Handler, api api) *runtime {
+	return &runtime{
+		api:     api,
+		handler: handler,
+		meta:    RequestMeta{},
+		fatal:   func(err error) { log.Fatal(err.Error()) },
+	}
+}
+
+func (rt *runtime) start() {
 	defer rt.recover()
 
 	for {
 		if err := rt.next(); err != nil {
-			log.Fatal(err)
+			rt.fatal(err)
 		}
 
 		rt.reset()
-	}
-}
-
-func newLambdaRuntime(handler Handler) *runtime {
-	domain := os.Getenv(envRuntimeDomain)
-
-	return &runtime{
-		api: defaultAPI{
-			domain:              domain,
-			invocationUrlPrefix: "http://" + domain + "/2018-06-01/runtime/invocation/",
-			nextUrl:             "http://" + domain + "/2018-06-01/runtime/invocation/next",
-			initErrorUrl:        "http://" + domain + "/2018-06-01/runtime/init/error",
-		},
-		handler: handler,
 	}
 }
 
@@ -63,10 +60,10 @@ func (rt *runtime) recover() {
 		if err, ok := err.(error); ok {
 			if rt.meta.RequestId == "" {
 				_, err := rt.api.postRuntimeInitError(err)
-				log.Fatal(err)
+				rt.fatal(err)
 			} else {
 				_, err := rt.api.postRuntimeInvocationError(rt.meta.RequestId, err)
-				log.Fatal(err)
+				rt.fatal(err)
 			}
 		}
 	}
@@ -146,6 +143,7 @@ func validateHeaderNoError(headers http.Header, key string) string {
 
 	return vals[0]
 }
+
 func validateHeader(headers http.Header, key string) (string, error) {
 	vals := headers[key]
 

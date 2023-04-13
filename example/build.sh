@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 export GOOS=linux
-export GOARCH=amd64
+export GOARCH=arm64
 export CGO_ENABLED=0
 
 home=$PWD
@@ -21,6 +21,7 @@ do
         echo $out
         bootstrap="$home/bin/bootstrap"
         cat $out > $bootstrap
+        chmod 777 $bootstrap
         zip -jD "$out".zip $bootstrap
         
         cd $root

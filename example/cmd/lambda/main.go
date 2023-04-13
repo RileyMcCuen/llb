@@ -6,6 +6,8 @@ import (
 	"io"
 	"llb"
 	"log"
+
+	"github.com/aws/aws-lambda-go/events"
 )
 
 func main() {
@@ -15,7 +17,7 @@ func main() {
 
 var (
 	_ = llb.Handler(Handler)
-	_ = llb.TypedHandler[Request, Response](TypedHandler)
+	_ = llb.TypedHandler[events.APIGatewayProxyRequest, events.APIGatewayProxyResponse](TypedHandler)
 )
 
 func Handler(ctx context.Context, r io.Reader) (io.Reader, error) {
@@ -26,19 +28,13 @@ func Handler(ctx context.Context, r io.Reader) (io.Reader, error) {
 	return bytes.NewBufferString(`{"status":"success"}`), nil
 }
 
-type (
-	Request struct {
-		Val int `json:"val"`
-	}
-	Response struct {
-		Msg string `json:"message"`
-	}
-)
+type ()
 
-func TypedHandler(ctx context.Context, r Request) (Response, error) {
-	log.Println("Value", r.Val)
+func TypedHandler(ctx context.Context, r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	log.Println("Value", r.Body)
 
-	return Response{
-		Msg: "success, printed the value",
+	return events.APIGatewayProxyResponse{
+		StatusCode: 200,
+		Body:       `{"status":"success"}`,
 	}, nil
 }

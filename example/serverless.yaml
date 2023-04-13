@@ -12,12 +12,13 @@ provider:
   region: us-east-1
   stage: ${opt:stage, 'dev'}
   profile: riley
+  architecture: arm64
   runtime: provided.al2
+  memorySize: 128
   apiName: ${self:service}
   environment:
     stage: ${self:provider.stage}
     env: ${self:provider.stage}
-    test: no
   iam:
     role:
       statements:
@@ -32,7 +33,7 @@ functions:
     name: ${self:service}-llb-${self:provider.stage}
     handler: bootstrap
     package:
-      artifact: ./bin/bootstrap.zip
+      artifact: ./bin/lambda.zip
     events:
       - http:
           path: /api/llb
