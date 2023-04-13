@@ -16,7 +16,7 @@ type (
 		nextUrl             string
 		initErrorUrl        string
 	}
-	lambdaRuntimeAPI interface {
+	api interface {
 		getRuntimeInvocationNext() (resp *http.Response, err error)
 		postRuntimeInitError(err error) (*http.Response, error)
 		postRuntimeInvocationError(requestId string, err error) (*http.Response, error)

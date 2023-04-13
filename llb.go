@@ -11,8 +11,8 @@ import (
 )
 
 type (
-	lambdaRuntime struct {
-		api     lambdaRuntimeAPI
+	runtime struct {
+		api     api
 		handler Handler
 		meta    RequestMeta
 	}
@@ -31,23 +31,23 @@ const (
 )
 
 func Start(handler Handler) {
-	lrt := newLambdaRuntime(handler)
+	rt := newLambdaRuntime(handler)
 
-	defer lrt.recover()
+	defer rt.recover()
 
 	for {
-		if err := lrt.next(); err != nil {
+		if err := rt.next(); err != nil {
 			log.Fatal(err)
 		}
 
-		lrt.reset()
+		rt.reset()
 	}
 }
 
-func newLambdaRuntime(handler Handler) *lambdaRuntime {
+func newLambdaRuntime(handler Handler) *runtime {
 	domain := os.Getenv(envRuntimeDomain)
 
-	return &lambdaRuntime{
+	return &runtime{
 		api: defaultAPI{
 			domain:              domain,
 			invocationUrlPrefix: "http://" + domain + "/2018-06-01/runtime/invocation/",
@@ -58,42 +58,42 @@ func newLambdaRuntime(handler Handler) *lambdaRuntime {
 	}
 }
 
-func (lrt *lambdaRuntime) recover() {
+func (rt *runtime) recover() {
 	if err := recover(); err != nil {
 		if err, ok := err.(error); ok {
-			if lrt.meta.RequestId == "" {
-				_, err := lrt.api.postRuntimeInitError(err)
+			if rt.meta.RequestId == "" {
+				_, err := rt.api.postRuntimeInitError(err)
 				log.Fatal(err)
 			} else {
-				_, err := lrt.api.postRuntimeInvocationError(lrt.meta.RequestId, err)
+				_, err := rt.api.postRuntimeInvocationError(rt.meta.RequestId, err)
 				log.Fatal(err)
 			}
 		}
 	}
 }
 
-func (lrt *lambdaRuntime) next() error {
-	resp, err := lrt.api.getRuntimeInvocationNext()
+func (rt *runtime) next() error {
+	resp, err := rt.api.getRuntimeInvocationNext()
 
 	if err != nil {
-		_, err = lrt.api.postRuntimeInitError(err)
+		_, err = rt.api.postRuntimeInitError(err)
 		return err
 	}
 
-	if err := lrt.updateMeta(resp); err != nil {
-		_, err = lrt.api.postRuntimeInitError(err)
+	if err := rt.updateMeta(resp); err != nil {
+		_, err = rt.api.postRuntimeInitError(err)
 		return err
 	}
 
-	ctx := context.WithValue(context.Background(), contextKey, lrt.meta)
+	ctx := context.WithValue(context.Background(), contextKey, rt.meta)
 
-	handlerResponse, err := lrt.handler(ctx, resp.Body)
+	handlerResponse, err := rt.handler(ctx, resp.Body)
 
 	if err != nil {
-		_, err = lrt.api.postRuntimeInvocationError(lrt.meta.RequestId, err)
+		_, err = rt.api.postRuntimeInvocationError(rt.meta.RequestId, err)
 		return err
 	} else {
-		resp, err := lrt.api.postRuntimeInvocationResponse(lrt.meta.RequestId, handlerResponse)
+		resp, err := rt.api.postRuntimeInvocationResponse(rt.meta.RequestId, handlerResponse)
 		if err != nil {
 			return err
 		}
@@ -103,37 +103,37 @@ func (lrt *lambdaRuntime) next() error {
 	}
 }
 
-func (lrt *lambdaRuntime) reset() {
-	lrt.meta = RequestMeta{}
+func (rt *runtime) reset() {
+	rt.meta = RequestMeta{}
 }
 
-func (lrt *lambdaRuntime) updateMeta(resp *http.Response) error {
+func (rt *runtime) updateMeta(resp *http.Response) error {
 	var err error
 	headers := resp.Header
 
-	lrt.meta.TraceId, err = validateTraceId(headers)
+	rt.meta.TraceId, err = validateTraceId(headers)
 	if err != nil {
 		return fmt.Errorf("%w; lambdaRuntime.updateMeta", err)
 	}
 
-	lrt.meta.RequestId, err = validateHeader(headers, headerRequestId)
+	rt.meta.RequestId, err = validateHeader(headers, headerRequestId)
 	if err != nil {
 		return fmt.Errorf("%w; lambdaRuntime.updateMeta", err)
 	}
 
-	lrt.meta.Deadline, err = validateDeadline(headers)
+	rt.meta.Deadline, err = validateDeadline(headers)
 	if err != nil {
 		return fmt.Errorf("%w; lambdaRuntime.updateMeta", err)
 	}
 
-	lrt.meta.LambdaArn, err = validateHeader(headers, headerLambdaArn)
+	rt.meta.LambdaArn, err = validateHeader(headers, headerLambdaArn)
 	if err != nil {
 		return fmt.Errorf("%w; lambdaRuntime.updateMeta", err)
 	}
 
-	lrt.meta.ClientContext = validateHeaderNoError(headers, headerClientContext)
+	rt.meta.ClientContext = validateHeaderNoError(headers, headerClientContext)
 
-	lrt.meta.CognitoIdentity = validateHeaderNoError(headers, headerCognitoIdentity)
+	rt.meta.CognitoIdentity = validateHeaderNoError(headers, headerCognitoIdentity)
 	return nil
 }
 
