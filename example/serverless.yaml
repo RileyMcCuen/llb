@@ -1,0 +1,39 @@
+app: llb-api
+service: llb-api
+configValidationMode: error
+
+frameworkVersion: ">=3.19.0"
+
+package:
+  individually: true
+
+provider:
+  name: aws
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  profile: riley
+  runtime: provided.al2
+  apiName: ${self:service}
+  environment:
+    stage: ${self:provider.stage}
+    env: ${self:provider.stage}
+    test: no
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - "*"
+          Resource:
+            - "*"
+
+functions:
+  llb:
+    name: ${self:service}-llb-${self:provider.stage}
+    handler: bootstrap
+    package:
+      artifact: ./bin/bootstrap.zip
+    events:
+      - http:
+          path: /api/llb
+          method: get
