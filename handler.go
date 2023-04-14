@@ -65,7 +65,7 @@ func NewError(err error, header, typ string) Error {
 	}
 }
 
-// WrapHandler creates a Handler from a TypedHandler and an optional errHandler, if no errHandler is provided DefaultErrHandler is used instead
+// WrapHandler creates a Handler from a TypedHandler and an optional ErrorHandler, if no ErrorHandler is provided DefaultErrHandler is used instead
 func WrapHandler[In, Out any](handler TypedHandler[In, Out], errHandler ErrorHandler) Handler {
 	if errHandler == nil {
 		errHandler = DefaultErrorHandler
