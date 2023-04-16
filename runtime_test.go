@@ -21,10 +21,39 @@ func newValidNextResponse() *http.Response {
 	}
 }
 
-type errorReadCloser struct{}
+type (
+	errorReadCloser struct{}
+	mockAPI         struct {
+		_getRuntimeInvocationNext      func() (resp *http.Response, err error)
+		_postRuntimeInitError          func(err error) (*http.Response, error)
+		_postRuntimeInvocationError    func(requestId string, err error) (*http.Response, error)
+		_postRuntimeInvocationResponse func(requestId string, response io.Reader) (*http.Response, error)
+	}
+)
+
+var (
+	_ = io.ReadCloser(errorReadCloser{})
+	_ = api(mockAPI{})
+)
 
 func (errorReadCloser) Read([]byte) (int, error) { return 0, nil }
 func (errorReadCloser) Close() error             { return errors.New("error") }
+
+func (api mockAPI) getRuntimeInvocationNext() (*http.Response, error) {
+	return api._getRuntimeInvocationNext()
+}
+
+func (api mockAPI) postRuntimeInitError(err error) (*http.Response, error) {
+	return api._postRuntimeInitError(err)
+}
+
+func (api mockAPI) postRuntimeInvocationError(requestId string, err error) (*http.Response, error) {
+	return api._postRuntimeInvocationError(requestId, err)
+}
+
+func (api mockAPI) postRuntimeInvocationResponse(requestId string, response io.Reader) (*http.Response, error) {
+	return api._postRuntimeInvocationResponse(requestId, response)
+}
 
 func Test_newRuntime(t *testing.T) {
 	type args struct {

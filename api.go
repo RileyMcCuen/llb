@@ -11,12 +11,15 @@ import (
 )
 
 type (
+	httpClient interface {
+		Do(*http.Request) (*http.Response, error)
+	}
 	defaultAPI struct {
 		domain              string
 		invocationUrlPrefix string
 		nextUrl             string
 		initErrorUrl        string
-		client              *http.Client
+		client              httpClient
 	}
 	api interface {
 		getRuntimeInvocationNext() (resp *http.Response, err error)
@@ -41,7 +44,7 @@ var (
 	_ = api(&defaultAPI{})
 )
 
-func newDefaultAPI(client *http.Client) defaultAPI {
+func newDefaultAPI(client httpClient) defaultAPI {
 	domain := os.Getenv(envRuntimeDomain)
 
 	return defaultAPI{
@@ -54,7 +57,13 @@ func newDefaultAPI(client *http.Client) defaultAPI {
 }
 
 func (api defaultAPI) getRuntimeInvocationNext() (*http.Response, error) {
-	resp, err := api.client.Get(api.nextUrl)
+	request, _ := http.NewRequest(
+		http.MethodGet,
+		api.nextUrl,
+		nil,
+	)
+
+	resp, err := api.client.Do(request)
 	if err != nil {
 		return resp, fmt.Errorf("%w; defaultAPI.getRuntimeInvocationNext", err)
 	}
