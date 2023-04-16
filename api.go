@@ -41,7 +41,7 @@ var (
 	_ = api(&defaultAPI{})
 )
 
-func newDefaultAPI() defaultAPI {
+func newDefaultAPI(client *http.Client) defaultAPI {
 	domain := os.Getenv(envRuntimeDomain)
 
 	return defaultAPI{
@@ -49,7 +49,7 @@ func newDefaultAPI() defaultAPI {
 		invocationUrlPrefix: "http://" + domain + "/2018-06-01/runtime/invocation/",
 		nextUrl:             "http://" + domain + "/2018-06-01/runtime/invocation/next",
 		initErrorUrl:        "http://" + domain + "/2018-06-01/runtime/init/error",
-		client:              http.DefaultClient,
+		client:              client,
 	}
 }
 

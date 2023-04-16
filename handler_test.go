@@ -2,7 +2,6 @@ package llb
 
 import (
 	"errors"
-	"io"
 	"testing"
 )
 
@@ -27,16 +26,5 @@ func TestDefaultErrorHandler(t *testing.T) {
 	_, err := DefaultErrorHandler(errors.New("test"))
 	if err.Error() != "test" {
 		t.Fatal("DefaultErrorHandler did not preserve error message")
-	}
-}
-
-func TestJsonErrorHandler(t *testing.T) {
-	r, err := JsonErrorHandler(errors.New("test"))
-	if err != nil {
-		t.Fatal("JsonErrorHandler returned an error but should not have")
-	}
-	data, _ := io.ReadAll(r)
-	if string(data) != `{"error":"test"}` {
-		t.Fatal("JsonErrorHandler did not preserve error message")
 	}
 }

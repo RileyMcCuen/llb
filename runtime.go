@@ -32,16 +32,20 @@ const (
 	headerCognitoIdentity = "Lambda-Runtime-Cognito-Identity"
 )
 
-func Start(handler Handler) {
-	newRuntime(handler, newDefaultAPI()).start()
+func defaultFatal(err error) {
+	log.Fatal(err.Error())
 }
 
-func newRuntime(handler Handler, api api) *runtime {
+func Start(handler Handler) {
+	newRuntime(handler, newDefaultAPI(http.DefaultClient), defaultFatal).start()
+}
+
+func newRuntime(handler Handler, api api, fatal func(error)) *runtime {
 	return &runtime{
 		api:     api,
 		handler: handler,
 		meta:    RequestMeta{},
-		fatal:   func(err error) { log.Fatal(err.Error()) },
+		fatal:   fatal,
 	}
 }
 
@@ -62,10 +66,10 @@ func (rt *runtime) recover() {
 		if err, ok := err.(error); ok {
 			if rt.meta.RequestId == "" {
 				_, err := rt.api.postRuntimeInitError(err)
-				rt.fatal(err)
+				log.Println(err)
 			} else {
 				_, err := rt.api.postRuntimeInvocationError(rt.meta.RequestId, err)
-				rt.fatal(err)
+				log.Println(err)
 			}
 		}
 	}
