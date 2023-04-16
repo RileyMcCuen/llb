@@ -16,6 +16,7 @@ type (
 		invocationUrlPrefix string
 		nextUrl             string
 		initErrorUrl        string
+		client              *http.Client
 	}
 	api interface {
 		getRuntimeInvocationNext() (resp *http.Response, err error)
@@ -48,11 +49,12 @@ func newDefaultAPI() defaultAPI {
 		invocationUrlPrefix: "http://" + domain + "/2018-06-01/runtime/invocation/",
 		nextUrl:             "http://" + domain + "/2018-06-01/runtime/invocation/next",
 		initErrorUrl:        "http://" + domain + "/2018-06-01/runtime/init/error",
+		client:              http.DefaultClient,
 	}
 }
 
 func (api defaultAPI) getRuntimeInvocationNext() (*http.Response, error) {
-	resp, err := http.Get(api.nextUrl)
+	resp, err := api.client.Get(api.nextUrl)
 	if err != nil {
 		return resp, fmt.Errorf("%w; defaultAPI.getRuntimeInvocationNext", err)
 	}
@@ -88,7 +90,7 @@ func (api defaultAPI) postRuntimeInitError(err error) (*http.Response, error) {
 	)
 	request.Header.Add(headerErrorType, header)
 
-	resp, err := http.DefaultClient.Do(request)
+	resp, err := api.client.Do(request)
 	if err != nil {
 		return resp, fmt.Errorf("%w; error submitting defaultAPI.postRuntimeInitError request", err)
 	} else {
@@ -135,7 +137,7 @@ func (api defaultAPI) postRuntimeInvocationError(requestId string, err error) (*
 	)
 	request.Header.Add(headerErrorType, header)
 
-	resp, err := http.DefaultClient.Do(request)
+	resp, err := api.client.Do(request)
 	if err != nil {
 		return resp, fmt.Errorf("%w; error submitting defaultAPI.postRuntimeInvocationError request", err)
 	} else {
@@ -169,7 +171,7 @@ func (api defaultAPI) postRuntimeInvocationResponse(requestId string, response i
 		req.Header.Add(headerContentType, defaultContentType)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := api.client.Do(req)
 	if err != nil {
 		err = fmt.Errorf("%w; defaultAPI.postRuntimeInvocationResponse for request: %s", err, requestId)
 		return api.postRuntimeInvocationError(requestId, err)

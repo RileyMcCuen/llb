@@ -20,6 +20,8 @@ type (
 )
 
 const (
+	MaxLambdaInvokeSize = 6291456
+
 	envTraceId = "_X_AMZN_TRACE_ID"
 
 	headerRequestId       = "Lambda-Runtime-Aws-Request-Id"
@@ -31,10 +33,10 @@ const (
 )
 
 func Start(handler Handler) {
-	newruntime(handler, newDefaultAPI()).start()
+	newRuntime(handler, newDefaultAPI()).start()
 }
 
-func newruntime(handler Handler, api api) *runtime {
+func newRuntime(handler Handler, api api) *runtime {
 	return &runtime{
 		api:     api,
 		handler: handler,
@@ -86,6 +88,10 @@ func (rt *runtime) next() error {
 
 	handlerResponse, err := rt.handler(ctx, resp.Body)
 
+	if err := resp.Body.Close(); err != nil {
+		return err
+	}
+
 	if err != nil {
 		_, err = rt.api.postRuntimeInvocationError(rt.meta.RequestId, err)
 		return err
@@ -95,8 +101,7 @@ func (rt *runtime) next() error {
 			return err
 		}
 
-		resp.Body.Close()
-		return nil
+		return resp.Body.Close()
 	}
 }
 

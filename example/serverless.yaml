@@ -38,3 +38,6 @@ functions:
       - http:
           path: /api/llb
           method: get
+      - http:
+          path: /api/llb
+          method: post

@@ -1,9 +1,7 @@
 package llb
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 )
 
@@ -34,15 +32,13 @@ type (
 	*/
 	Handler func(ctx context.Context, r io.Reader) (io.Reader, error)
 
-	TypedHandler[In, Out any] func(ctx context.Context, in In) (Out, error)
-	ErrorHandler              func(err error) (io.Reader, error)
+	ErrorHandler func(err error) (io.Reader, error)
 )
 
 var (
 	_ = Response(defaultReponse{})
 	_ = Error(defaultError{})
 	_ = ErrorHandler(DefaultErrorHandler)
-	_ = ErrorHandler(JsonErrorHandler)
 )
 
 func (cr defaultReponse) ContentType() string { return cr.contentType }
@@ -65,42 +61,4 @@ func NewError(err error, header, typ string) Error {
 	}
 }
 
-// WrapHandler creates a Handler from a TypedHandler and an optional errHandler, if no errHandler is provided DefaultErrHandler is used instead
-func WrapHandler[In, Out any](handler TypedHandler[In, Out], errHandler ErrorHandler) Handler {
-	if errHandler == nil {
-		errHandler = DefaultErrorHandler
-	}
-
-	return func(ctx context.Context, r io.Reader) (io.Reader, error) {
-		in := new(In)
-		data, _ := io.ReadAll(r)
-
-		if err := json.Unmarshal(data, in); err != nil {
-			return errHandler(err)
-		}
-
-		out, err := handler(ctx, *in)
-		if err != nil {
-			return errHandler(err)
-		}
-
-		data, err = json.Marshal(out)
-		if err != nil {
-			return errHandler(err)
-		}
-
-		return bytes.NewBuffer(data), nil
-	}
-}
-
 func DefaultErrorHandler(err error) (io.Reader, error) { return nil, err }
-
-func JsonErrorHandler(err error) (io.Reader, error) {
-	data, _ := json.Marshal(struct {
-		Err string `json:"error"`
-	}{
-		Err: err.Error(),
-	})
-
-	return bytes.NewBuffer(data), nil
-}
