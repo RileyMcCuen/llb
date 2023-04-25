@@ -5,7 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"llb"
+
+	"github.com/RileyMcCuen/llb"
 
 	"github.com/aws/aws-lambda-go/events"
 )

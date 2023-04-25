@@ -1,4 +1,4 @@
-module llb
+module github.com/RileyMcCuen/llb
 
 go 1.20
 

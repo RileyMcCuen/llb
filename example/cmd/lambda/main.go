@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"llb"
-	"llb/pkg/handlerutil"
 	"log"
 	"os"
+
+	"github.com/RileyMcCuen/llb/pkg/handlerutil"
+
+	"github.com/RileyMcCuen/llb"
 
 	"github.com/aws/aws-lambda-go/events"
 )

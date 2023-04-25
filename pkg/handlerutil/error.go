@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"llb"
+
+	"github.com/RileyMcCuen/llb"
 )
 
 var (
