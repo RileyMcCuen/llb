@@ -35,12 +35,15 @@ func InOutTypeHandler[In any, Out any](handler InOutTypedHandler[In, Out], errHa
 	}
 
 	_, nilOut := any(*new(Out)).(nothing)
+	buf := bytes.NewBuffer(nil)
 
 	return func(ctx context.Context, r io.Reader) (io.Reader, error) {
 		in := new(In)
-		data, _ := io.ReadAll(r)
 
-		if err := json.Unmarshal(data, in); err != nil {
+		buf.ReadFrom(r)
+		defer buf.Reset()
+
+		if err := json.Unmarshal(buf.Bytes(), in); err != nil {
 			return errHandler(err)
 		}
 
@@ -53,7 +56,7 @@ func InOutTypeHandler[In any, Out any](handler InOutTypedHandler[In, Out], errHa
 			return nil, nil
 		}
 
-		data, err = json.Marshal(out)
+		data, err := json.Marshal(out)
 		if err != nil {
 			return errHandler(err)
 		}
@@ -81,5 +84,9 @@ func CWEHandler(handler func(ctx context.Context, in events.CloudWatchEvent) err
 }
 
 func APIGatewayHandler(handler func(ctx context.Context, in events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error), errHandler llb.ErrorHandler) llb.Handler {
+	return InOutTypeHandler(handler, errHandler)
+}
+
+func APIGatewayV2Handler(handler func(ctx context.Context, in events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error), errHandler llb.ErrorHandler) llb.Handler {
 	return InOutTypeHandler(handler, errHandler)
 }

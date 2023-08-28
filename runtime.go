@@ -33,7 +33,7 @@ const (
 )
 
 func defaultFatal(err error) {
-	log.Fatal(err.Error())
+	panic(err)
 }
 
 func Start(handler Handler) {
@@ -65,11 +65,11 @@ func (rt *runtime) recover() {
 	if err := recover(); err != nil {
 		if err, ok := err.(error); ok {
 			if rt.meta.RequestId == "" {
-				_, err := rt.api.postRuntimeInitError(err)
-				log.Println(err)
+				_, initErr := rt.api.postRuntimeInitError(err)
+				log.Println("INIT ERROR", err, initErr)
 			} else {
-				_, err := rt.api.postRuntimeInvocationError(rt.meta.RequestId, err)
-				log.Println(err)
+				_, invokeErr := rt.api.postRuntimeInvocationError(rt.meta.RequestId, err)
+				log.Println("INVOKE ERROR", err, invokeErr)
 			}
 		}
 	}
@@ -79,12 +79,12 @@ func (rt *runtime) next() error {
 	resp, err := rt.api.getRuntimeInvocationNext()
 
 	if err != nil {
-		_, err = rt.api.postRuntimeInitError(err)
+		rt.api.postRuntimeInitError(err)
 		return err
 	}
 
 	if err := rt.updateMeta(resp); err != nil {
-		_, err = rt.api.postRuntimeInitError(err)
+		rt.api.postRuntimeInitError(err)
 		return err
 	}
 
@@ -92,20 +92,14 @@ func (rt *runtime) next() error {
 
 	handlerResponse, err := rt.handler(ctx, resp.Body)
 
-	if err := resp.Body.Close(); err != nil {
-		return err
-	}
+	resp.Body.Close()
 
 	if err != nil {
-		_, err = rt.api.postRuntimeInvocationError(rt.meta.RequestId, err)
+		rt.api.postRuntimeInvocationError(rt.meta.RequestId, err)
 		return err
 	} else {
-		resp, err := rt.api.postRuntimeInvocationResponse(rt.meta.RequestId, handlerResponse)
-		if err != nil {
-			return err
-		}
-
-		return resp.Body.Close()
+		rt.api.postRuntimeInvocationResponse(rt.meta.RequestId, handlerResponse)
+		return err
 	}
 }
 
