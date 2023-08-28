@@ -50,6 +50,8 @@ func newRuntime(handler Handler, api api, fatal func(error)) *runtime {
 }
 
 func (rt *runtime) start() {
+	log.Printf("Start LLB Version %s", Version)
+
 	defer rt.recover()
 
 	for {
